@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Bebas+Neue&display=swap');
+@import "tailwindcss";
+
+body {
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  background: #ffffff;
+}
+
+.font-hero {
+  font-family: 'Bebas Neue', Impact, sans-serif;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(-2deg); }
+  50%       { transform: translateY(-14px) rotate(2deg); }
+}
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes floatCard {
+  0%, 100% { transform: perspective(600px) rotateY(-8deg) translateY(0px); }
+  50%       { transform: perspective(600px) rotateY(8deg) translateY(-10px); }
+}
+.animate-float      { animation: float 3.5s ease-in-out infinite; }
+.animate-float-slow { animation: floatSlow 5s ease-in-out infinite; }
+.animate-float-card { animation: floatCard 6s ease-in-out infinite; }
+
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card-3d-inner {
+  transform: translateZ(20px);
+  transition: transform 0.15s ease;
+}
