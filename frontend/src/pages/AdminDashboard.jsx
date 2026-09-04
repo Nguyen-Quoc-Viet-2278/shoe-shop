@@ -62,7 +62,7 @@ const NAV_ITEMS = [
   { key: "reviews",   label: "Đánh giá"    },
 ];
 
-const EMPTY_PRODUCT = { name: "", brand: "", sku: "", category: "giay-dep", price: "", image: "", sizes: "38,39,40,41,42,43", info: "", details: "" };
+const EMPTY_PRODUCT = { name: "", brand: "", sku: "", category: "giay-dep", price: "", image: "", sizes: "38,39,40,41,42,43", info: "", details: "", colors: [] };
 const EMPTY_COUPON  = { code: "", discount_type: "percent", discount_value: "", min_order: "", max_uses: "", expires_at: "" };
 
 /* ── Stars display ── */
@@ -93,6 +93,8 @@ export default function AdminDashboard() {
 
   // data
   const [summary, setSummary]       = useState(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
   const [revenue, setRevenue]        = useState([]);
   const [products, setProducts]      = useState([]);
@@ -106,6 +108,7 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct]   = useState(null);
   const [productForm, setProductForm]         = useState(EMPTY_PRODUCT);
   const [productSaving, setProductSaving]     = useState(false);
+  const [imageUploading, setImageUploading]   = useState(false);
   const [productError, setProductError]       = useState(null);
 
   // coupon form
@@ -125,19 +128,19 @@ export default function AdminDashboard() {
       navigate("/", { replace: true });
       return;
     }
-    fetchAll();
-  }, []);
-
-  async function fetchAll() {
     fetchDashboard();
     fetchProducts();
     fetchOrders();
     fetchUsers();
     fetchCoupons();
     fetchReviews();
-  }
+    // Fetch helpers are intentionally stable for this mount-only data load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, user]);
 
   async function fetchDashboard() {
+    setDashboardLoading(true);
+    setDashboardError(null);
     try {
       const [s, t, r] = await Promise.all([
         fetch(`${API}/stats/summary`,      { headers }).then(r => r.json()),
@@ -147,7 +150,12 @@ export default function AdminDashboard() {
       setSummary(s && !s.error ? s : null);
       setTopProducts(Array.isArray(t) ? t : []);
       setRevenue(Array.isArray(r) ? r : []);
-    } catch {}
+    } catch (err) {
+      setSummary(null);
+      setDashboardError(err.message || "Không thể tải dữ liệu tổng quan");
+    } finally {
+      setDashboardLoading(false);
+    }
   }
 
   async function fetchProducts() {
@@ -205,6 +213,7 @@ export default function AdminDashboard() {
       sizes: Array.isArray(p.sizes) ? p.sizes.join(",") : "",
       info: Array.isArray(p.info) ? p.info.join("\n") : "",
       details: Array.isArray(p.details) ? p.details.join("\n") : "",
+      colors: Array.isArray(p.colors) ? p.colors.map(c => ({ name: c.name, hex: c.hex || "#000000", image: c.image ?? "" })) : [],
     });
     setProductError(null);
     setShowProductForm(true);
@@ -212,6 +221,10 @@ export default function AdminDashboard() {
 
   async function handleSaveProduct(e) {
     e.preventDefault();
+    if (imageUploading) {
+      setProductError("Vui lòng chờ ảnh tải lên xong");
+      return;
+    }
     if (!productForm.name || !productForm.price) { setProductError("Vui lòng nhập tên và giá"); return; }
     setProductSaving(true); setProductError(null);
     const body = {
@@ -220,6 +233,9 @@ export default function AdminDashboard() {
       sizes: productForm.sizes.split(",").map(s => Number(s.trim())).filter(Boolean),
       info: productForm.info.split("\n").map(s => s.trim()).filter(Boolean),
       details: productForm.details.split("\n").map(s => s.trim()).filter(Boolean),
+      colors: productForm.colors
+        .filter(c => c.name.trim())
+        .map(c => ({ name: c.name.trim(), hex: c.hex || "#000000", image: c.image.trim() || null })),
     };
     try {
       const url = editingProduct ? `${API}/products/${editingProduct}` : `${API}/products`;
@@ -232,6 +248,30 @@ export default function AdminDashboard() {
     } catch (err) {
       setProductError(err.message);
     } finally { setProductSaving(false); }
+  }
+
+  async function handleImageUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    setProductError(null);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch(`${API}/products/upload-image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Không thể tải ảnh lên");
+      setProductForm((form) => ({ ...form, image: data.url }));
+    } catch (err) {
+      setProductError(err.message);
+    } finally {
+      setImageUploading(false);
+      e.target.value = "";
+    }
   }
 
   async function handleDeleteProduct(id, name) {
@@ -375,7 +415,20 @@ export default function AdminDashboard() {
           {/* ══════════ DASHBOARD ══════════ */}
           {tab === "dashboard" && (
             <div className="space-y-6">
-              {summary ? (
+              {dashboardLoading ? (
+                <p className="text-gray-400 text-sm animate-pulse">Đang tải...</p>
+              ) : dashboardError ? (
+                <div className="border border-red-100 bg-red-50 rounded-2xl p-6">
+                  <p className="text-sm text-red-600 mb-3">{dashboardError}</p>
+                  <button
+                    type="button"
+                    onClick={fetchDashboard}
+                    className="bg-black text-white rounded-xl px-4 py-2 text-xs font-semibold"
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              ) : summary ? (
                 <>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard label="Doanh thu"  value={fmt(summary.total_revenue)} sub="Đơn hoàn thành" />
@@ -435,9 +488,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </>
-              ) : (
-                <p className="text-gray-400 text-sm animate-pulse">Đang tải...</p>
-              )}
+              ) : null}
             </div>
           )}
 
@@ -734,7 +785,6 @@ export default function AdminDashboard() {
                 { label: "Thương hiệu", key: "brand", placeholder: "Nike" },
                 { label: "SKU", key: "sku", placeholder: "SP000101" },
                 { label: "Giá (VNĐ) *", key: "price", placeholder: "2500000", type: "number" },
-                { label: "Link ảnh", key: "image", placeholder: "https://..." },
                 { label: "Sizes (cách bằng dấu phẩy)", key: "sizes", placeholder: "38,39,40,41,42,43" },
               ].map(({ label, key, placeholder, type }) => (
                 <div key={key}>
@@ -745,6 +795,47 @@ export default function AdminDashboard() {
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 transition" />
                 </div>
               ))}
+              <div>
+                <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Ảnh sản phẩm</label>
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} disabled={imageUploading}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm file:mr-3 file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:rounded-lg" />
+                <p className="text-[10px] text-gray-400 mt-1">{imageUploading ? "Đang tải ảnh lên..." : "JPG, PNG hoặc WebP, tối đa 5MB"}</p>
+                {productForm.image && <img src={productForm.image} alt="Xem trước sản phẩm" className="mt-3 w-24 h-24 rounded-xl object-cover border border-gray-100" />}
+                <input type="url" value={productForm.image} onChange={e => setProductForm(f => ({ ...f, image: e.target.value }))}
+                  placeholder="Hoặc nhập URL ảnh..." className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 transition" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">
+                  Màu sắc
+                </label>
+                <div className="space-y-2">
+                  {productForm.colors.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input type="color" value={c.hex}
+                        onChange={e => setProductForm(f => ({
+                          ...f, colors: f.colors.map((row, j) => j === i ? { ...row, hex: e.target.value } : row)
+                        }))}
+                        className="w-10 h-10 rounded-lg border border-gray-200 shrink-0 cursor-pointer" />
+                      <input type="text" value={c.name} placeholder="Tên màu (vd: Đỏ)"
+                        onChange={e => setProductForm(f => ({
+                          ...f, colors: f.colors.map((row, j) => j === i ? { ...row, name: e.target.value } : row)
+                        }))}
+                        className="w-28 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 transition" />
+                      <input type="text" value={c.image} placeholder="Link ảnh riêng (không bắt buộc)"
+                        onChange={e => setProductForm(f => ({
+                          ...f, colors: f.colors.map((row, j) => j === i ? { ...row, image: e.target.value } : row)
+                        }))}
+                        className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 transition" />
+                      <button type="button"
+                        onClick={() => setProductForm(f => ({ ...f, colors: f.colors.filter((_, j) => j !== i) }))}
+                        className="text-gray-300 hover:text-red-400 transition shrink-0 px-1">✕</button>
+                    </div>
+                  ))}
+                  <button type="button"
+                    onClick={() => setProductForm(f => ({ ...f, colors: [...f.colors, { name: "", hex: "#000000", image: "" }] }))}
+                    className="text-xs font-bold text-blue-500 hover:text-blue-700 transition">+ Thêm màu</button>
+                </div>
+              </div>
               {["info", "details"].map(key => (
                 <div key={key}>
                   <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">
@@ -759,7 +850,7 @@ export default function AdminDashboard() {
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowProductForm(false)}
                   className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm font-bold hover:border-black transition">Huỷ</button>
-                <button type="submit" disabled={productSaving}
+                <button type="submit" disabled={productSaving || imageUploading}
                   className="flex-1 bg-blue-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-blue-600 transition disabled:opacity-50">
                   {productSaving ? "Đang lưu..." : editingProduct ? "Cập nhật" : "Thêm mới"}
                 </button>

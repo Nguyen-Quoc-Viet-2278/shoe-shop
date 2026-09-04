@@ -39,12 +39,13 @@ export default function TrangCaNhan() {
 
   useEffect(() => {
     if (!isLoggedIn) { navigate("/dang-nhap"); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProfile({ full_name: user.full_name || "", phone: user.phone || "" });
-  }, [isLoggedIn, user]);
+  }, [isLoggedIn, user, navigate]);
 
   useEffect(() => {
     if (activeTab === "wishlist") fetchItems();
-  }, [activeTab]);
+  }, [activeTab, fetchItems]);
 
   const authHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 

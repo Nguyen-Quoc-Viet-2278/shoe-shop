@@ -105,7 +105,7 @@ export default function DonHangCuaToi() {
                         <div className="space-y-2">
                           {(o.items || []).map((item) => (
                             <div key={item.id} className="flex justify-between items-center text-sm">
-                              <span className="text-gray-700">{item.product_name} <span className="text-gray-400">x{item.quantity}</span> {item.size && <span className="text-gray-400">size {item.size}</span>}</span>
+                              <span className="text-gray-700">{item.product_name} <span className="text-gray-400">x{item.quantity}</span> {item.size && <span className="text-gray-400">size {item.size}</span>} {item.color && <span className="text-gray-400">màu {item.color}</span>}</span>
                               <span className="font-semibold">{Number(item.price * item.quantity).toLocaleString("vi-VN")}đ</span>
                             </div>
                           ))}

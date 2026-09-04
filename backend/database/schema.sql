@@ -17,6 +17,7 @@ BEGIN
     id INT IDENTITY(1,1) PRIMARY KEY,
     full_name NVARCHAR(255) NOT NULL,
     email NVARCHAR(255) NOT NULL UNIQUE,
+    phone NVARCHAR(20) NULL,
     password_hash NVARCHAR(255) NOT NULL,
     role NVARCHAR(20) NOT NULL CONSTRAINT DF_users_role DEFAULT ('user'),
     created_at DATETIME2 NOT NULL CONSTRAINT DF_users_created_at DEFAULT (SYSUTCDATETIME()),
@@ -31,6 +32,9 @@ IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='users'
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name='CK_users_role')
   ALTER TABLE dbo.users ADD CONSTRAINT CK_users_role CHECK (role IN ('admin', 'manager', 'user'));
+GO
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='users' AND COLUMN_NAME='phone')
+  ALTER TABLE dbo.users ADD phone NVARCHAR(20) NULL;
 GO
 
 -- PRODUCTS
@@ -173,6 +177,19 @@ IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='produc
   ALTER TABLE dbo.products ADD stock INT NOT NULL CONSTRAINT DF_products_stock DEFAULT (100);
 GO
 
+-- Add colors to products (JSON string: [{"name":"Đen","hex":"#000000"}, ...])
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='products' AND COLUMN_NAME='colors')
+  ALTER TABLE dbo.products ADD colors NVARCHAR(MAX) NULL;
+GO
+
+-- Add color to cart_items / order_items
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='cart_items' AND COLUMN_NAME='color')
+  ALTER TABLE dbo.cart_items ADD color NVARCHAR(50) NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='order_items' AND COLUMN_NAME='color')
+  ALTER TABLE dbo.order_items ADD color NVARCHAR(50) NULL;
+GO
+
 -- SEED PRODUCTS
 IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE sku = 'SP000101')
   INSERT INTO dbo.products (name, brand, sku, category, price, sizes, image, info, details) VALUES
@@ -289,5 +306,49 @@ IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE sku = 'SP000808')
    N'https://images.unsplash.com/photo-1539185441755-769473a23570?w=800&h=800&fit=crop&q=80',
    N'["Thương hiệu: Reebok","Xuất xứ: Mỹ","Phân loại: Giày thể thao nữ","Mã sản phẩm: FV7260","Tình trạng sản phẩm: New (Fullbox)","Phụ kiện đi kèm: Hộp"]',
    N'["Chất liệu: Leather + Canvas","Màu sắc: White / Light Grey","Đế giày: EVA midsole","Phù hợp: Gym, casual, vintage"]');
+GO
+
+-- PASSWORD RESET TOKENS
+IF OBJECT_ID('dbo.password_reset_tokens', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.password_reset_tokens (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    token NVARCHAR(10) NOT NULL,
+    expires_at DATETIME2 NOT NULL,
+    used BIT NOT NULL CONSTRAINT DF_password_reset_tokens_used DEFAULT (0),
+    CONSTRAINT FK_password_reset_tokens_users FOREIGN KEY (user_id)
+      REFERENCES dbo.users(id) ON DELETE CASCADE
+  );
+END
+GO
+
+-- COUPONS
+IF OBJECT_ID('dbo.coupons', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.coupons (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    code NVARCHAR(50) NOT NULL UNIQUE,
+    discount_type NVARCHAR(20) NOT NULL CONSTRAINT DF_coupons_discount_type DEFAULT ('percent'),
+    discount_value DECIMAL(12,0) NOT NULL,
+    min_order DECIMAL(12,0) NOT NULL CONSTRAINT DF_coupons_min_order DEFAULT (0),
+    max_uses INT NULL,
+    used_count INT NOT NULL CONSTRAINT DF_coupons_used_count DEFAULT (0),
+    expires_at DATETIME2 NULL,
+    is_active BIT NOT NULL CONSTRAINT DF_coupons_is_active DEFAULT (1),
+    created_at DATETIME2 NOT NULL CONSTRAINT DF_coupons_created_at DEFAULT (SYSUTCDATETIME())
+  );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.coupons WHERE code = 'LIZSHOOS10')
+  INSERT INTO dbo.coupons (code, discount_type, discount_value, min_order)
+  VALUES ('LIZSHOOS10', 'percent', 10, 500000);
+IF NOT EXISTS (SELECT 1 FROM dbo.coupons WHERE code = 'FREESHIP')
+  INSERT INTO dbo.coupons (code, discount_type, discount_value, min_order)
+  VALUES ('FREESHIP', 'fixed', 30000, 200000);
+IF NOT EXISTS (SELECT 1 FROM dbo.coupons WHERE code = 'SALE50K')
+  INSERT INTO dbo.coupons (code, discount_type, discount_value, min_order)
+  VALUES ('SALE50K', 'fixed', 50000, 1000000);
 GO
 

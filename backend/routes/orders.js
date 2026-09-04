@@ -39,9 +39,9 @@ router.post("/", async (req, res) => {
 
       for (const item of items) {
         await queryTx(
-          `INSERT INTO order_items (order_id, product_id, product_name, price, quantity, size)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [oid, item.id ?? null, item.name ?? null, item.price ?? null, item.quantity, item.size ?? null]
+          `INSERT INTO order_items (order_id, product_id, product_name, price, quantity, size, color)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [oid, item.id ?? null, item.name ?? null, item.price ?? null, item.quantity, item.size ?? null, item.color ?? null]
         );
       }
       return oid;

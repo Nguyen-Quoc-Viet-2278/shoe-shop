@@ -39,7 +39,7 @@ export default function Cart() {
         {/* Items */}
         <div className="divide-y divide-gray-100">
           {cart.map((item) => (
-            <div key={`${item.id}-${item.size}`} className="flex items-center gap-6 py-6">
+            <div key={`${item.id}-${item.size}-${item.color}`} className="flex items-center gap-6 py-6">
               {/* Ảnh */}
               <Link to={`/san-pham/${item.id}`} className="w-24 h-24 rounded-2xl overflow-hidden bg-gray-100 shrink-0 hover:opacity-80 transition">
                 <img
@@ -63,6 +63,12 @@ export default function Cart() {
                       Size {item.size}
                     </span>
                   )}
+                  {item.color && (
+                    <span className="text-[10px] font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full border border-gray-300" style={{ backgroundColor: item.colorHex || "#ccc" }} />
+                      {item.color}
+                    </span>
+                  )}
                   <p className="text-gray-500 text-sm">
                     {item.price.toLocaleString("vi-VN")}₫
                   </p>
@@ -72,14 +78,14 @@ export default function Cart() {
               {/* Tăng giảm số lượng */}
               <div className="flex items-center gap-3 border border-gray-200 rounded-full px-4 py-2">
                 <button
-                  onClick={() => updateQuantity(item.id, item.size, item.quantity - 1)}
+                  onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity - 1)}
                   className="text-lg font-bold text-gray-400 hover:text-black transition w-5 text-center"
                 >
                   −
                 </button>
                 <span className="font-semibold w-5 text-center">{item.quantity}</span>
                 <button
-                  onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
+                  onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity + 1)}
                   className="text-lg font-bold text-gray-400 hover:text-black transition w-5 text-center"
                 >
                   +
@@ -93,7 +99,7 @@ export default function Cart() {
 
               {/* Xóa */}
               <button
-                onClick={() => removeFromCart(item.id, item.size)}
+                onClick={() => removeFromCart(item.id, item.size, item.color)}
                 className="text-gray-300 hover:text-red-500 transition shrink-0"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

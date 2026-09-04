@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { WishlistContext } from "./wishlist-context";
 import { API_URL } from "../lib/config";
 
@@ -6,9 +6,9 @@ export function WishlistProvider({ children, token }) {
   const [ids, setIds] = useState([]);
   const [items, setItems] = useState([]);
 
-  const authHeaders = token
+  const authHeaders = useMemo(() => token
     ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : null;
+    : null, [token]);
 
   const fetchIds = useCallback(async () => {
     if (!token) { setIds([]); setItems([]); return; }
@@ -16,7 +16,7 @@ export function WishlistProvider({ children, token }) {
       const res = await fetch(`${API_URL}/wishlist/ids`, { headers: authHeaders });
       if (res.ok) setIds(await res.json());
     } catch { /* ignore */ }
-  }, [token]);
+  }, [token, authHeaders]);
 
   const fetchItems = useCallback(async () => {
     if (!token) { setItems([]); return; }
@@ -24,9 +24,11 @@ export function WishlistProvider({ children, token }) {
       const res = await fetch(`${API_URL}/wishlist`, { headers: authHeaders });
       if (res.ok) setItems(await res.json());
     } catch { /* ignore */ }
-  }, [token]);
+  }, [token, authHeaders]);
 
-  useEffect(() => { fetchIds(); }, [fetchIds]);
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => { void fetchIds(); }, [fetchIds]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggle = useCallback(async (productId) => {
     if (!token) return;

@@ -37,6 +37,7 @@ function Stars({ value, onChange, size = "lg" }) {
 
 /* ── Lightbox Modal ── */
 function Lightbox({ images, index, onClose, onPrev, onNext }) {
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "Escape") onClose();
@@ -178,6 +179,8 @@ export default function ChiTietSanPham() {
 
   const [selectedSize, setSelectedSize] = useState(null);
   const [sizeError, setSizeError] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [colorError, setColorError] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [tab, setTab] = useState("mo-ta");
   const [added, setAdded] = useState(false);
@@ -216,8 +219,12 @@ export default function ChiTietSanPham() {
   };
 
   useEffect(() => {
-    if (product) { fetchReviews(); fetchMyReview(); }
+    if (product) {
+      void fetchReviews();
+      void fetchMyReview();
+    }
   }, [product?.id, token]);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   const handleDeleteReview = async () => {
     await fetch(`${API_URL}/reviews/${product.id}`, {
@@ -253,18 +260,27 @@ export default function ChiTietSanPham() {
 
   const liked = wishIds.includes(product.id);
 
+  const validateSelection = () => {
+    let ok = true;
+    if (!selectedSize) { setSizeError(true); ok = false; }
+    if (product.colors?.length && !selectedColor) { setColorError(true); ok = false; }
+    return ok;
+  };
+
   const handleAddToCart = () => {
-    if (!selectedSize) { setSizeError(true); return; }
+    if (!validateSelection()) return;
     setSizeError(false);
-    addToCart({ ...product, quantity, size: selectedSize });
+    setColorError(false);
+    addToCart({ ...product, quantity, size: selectedSize, color: selectedColor?.name ?? null, colorHex: selectedColor?.hex ?? null });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };
 
   const handleBuyNow = () => {
-    if (!selectedSize) { setSizeError(true); return; }
+    if (!validateSelection()) return;
     setSizeError(false);
-    addToCart({ ...product, quantity, size: selectedSize });
+    setColorError(false);
+    addToCart({ ...product, quantity, size: selectedSize, color: selectedColor?.name ?? null, colorHex: selectedColor?.hex ?? null });
     navigate("/thanh-toan");
   };
 
@@ -305,7 +321,7 @@ export default function ChiTietSanPham() {
               onClick={() => setLightbox(mainImg)}
             >
               <img
-                src={images[mainImg] || product.image}
+                src={selectedColor?.image || images[mainImg] || product.image}
                 alt={product.name}
                 className="w-full h-full object-contain p-10 hover:scale-105 transition duration-500"
               />
@@ -358,6 +374,32 @@ export default function ChiTietSanPham() {
             <div className="w-full h-px bg-gray-100 mb-5" />
 
             <p className="text-3xl font-black mb-6">{product.price.toLocaleString("vi-VN")}₫</p>
+
+            {/* Color */}
+            {product.colors?.length > 0 && (
+              <div className="mb-6">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-400 mb-3">
+                  Màu sắc {selectedColor && <span className="text-black">— {selectedColor.name}</span>}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {product.colors.map((c) => (
+                    <button
+                      key={c.name}
+                      onClick={() => { setSelectedColor(c); setColorError(false); }}
+                      title={c.name}
+                      className={`w-9 h-9 rounded-full border-2 transition flex items-center justify-center ${
+                        selectedColor?.name === c.name ? "border-black scale-110" : "border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      <span className="w-6 h-6 rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />
+                    </button>
+                  ))}
+                </div>
+                {colorError && (
+                  <p className="text-red-400 text-xs mt-2">Vui lòng chọn màu trước</p>
+                )}
+              </div>
+            )}
 
             {/* Size */}
             <div className="mb-6">

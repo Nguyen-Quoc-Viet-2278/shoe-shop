@@ -47,6 +47,26 @@ cp frontend/.env.example frontend/.env
 - `backend/.env`: thông tin database (SQL Server), JWT_SECRET, Google Client ID, cấu hình VNPAY
 - `frontend/.env`: URL backend API, Google Client ID
 
+### 5. Deploy Vercel + Railway
+
+**Backend trên Railway:**
+
+- Root Directory: `backend`
+- Build Command: `npm install`
+- Start Command: `npm start`
+- Thêm các biến trong `backend/.env.example`, thay domain thật cho `FRONTEND_URL`, `ALLOWED_ORIGINS` và `PUBLIC_API_URL`.
+- Chạy migration và seed trên SQL Server trước khi mở website.
+
+**Frontend trên Vercel:**
+
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Thêm `VITE_API_URL=https://your-backend.up.railway.app` và `VITE_GOOGLE_CLIENT_ID`.
+- `frontend/vercel.json` đã cấu hình fallback cho React Router.
+
+Ảnh upload hiện được lưu trong `backend/uploads`. Railway có thể xóa filesystem khi redeploy; production nên chuyển ảnh sang Cloudinary, S3 hoặc storage persistent trước khi dùng lâu dài.
+
 ### 3. Khởi tạo & seed database
 
 ```bash

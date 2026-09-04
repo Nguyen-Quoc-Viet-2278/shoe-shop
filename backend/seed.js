@@ -11,7 +11,7 @@ console.log("Seeding database...");
 
 try {
   execSync(
-    `sqlcmd -S "${server}" -U ${user} -P ${password} -i "${sqlFile}" -C`,
+    `sqlcmd -S "${server}" -U ${user} -P ${password} -f 65001 -i "${sqlFile}" -C`,
     { stdio: "inherit" }
   );
   console.log("✅ Seed data inserted successfully.");

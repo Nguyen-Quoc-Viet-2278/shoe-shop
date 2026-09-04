@@ -11,7 +11,7 @@ console.log(`Connecting to ${server}...`);
 
 try {
   execSync(
-    `sqlcmd -S "${server}" -U ${user} -P ${password} -i "${sqlFile}" -C`,
+    `sqlcmd -S "${server}" -U ${user} -P ${password} -f 65001 -i "${sqlFile}" -C`,
     { stdio: "inherit" }
   );
   console.log("✅ Database updated successfully.");

@@ -46,7 +46,7 @@ async function sendOrderConfirmation(toEmail, order) {
 
   const itemsHtml = order.items.map((item) => `
     <tr>
-      <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px">${item.product_name ?? item.name}${item.size ? ` (Size ${item.size})` : ""}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px">${item.product_name ?? item.name}${item.size ? ` (Size ${item.size})` : ""}${item.color ? ` (${item.color})` : ""}</td>
       <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:center;font-size:14px">x${item.quantity}</td>
       <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-size:14px">${Number(item.price * item.quantity).toLocaleString("vi-VN")}₫</td>
     </tr>`).join("");

@@ -66,8 +66,7 @@ export default function ThanhToan() {
   }, []);
 
   useEffect(() => {
-    if (!form.provinceCode) { setWards([]); return; }
-    setWardsLoading(true);
+    if (!form.provinceCode) return;
     fetch(`https://provinces.open-api.vn/api/v2/p/${form.provinceCode}?depth=2`)
       .then((res) => res.json())
       .then((data) => setWards(data.wards || []))
@@ -78,6 +77,7 @@ export default function ThanhToan() {
   const handleProvinceChange = (e) => {
     const code = e.target.value;
     const p = provinces.find((p) => String(p.code) === code);
+    setWardsLoading(Boolean(code));
     setForm((prev) => ({
       ...prev,
       provinceCode: code,
@@ -85,6 +85,7 @@ export default function ThanhToan() {
       wardCode: "",
       wardName: "",
     }));
+    setWards([]);
   };
 
   const handleWardChange = (e) => {

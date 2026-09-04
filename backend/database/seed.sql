@@ -22,7 +22,7 @@ GO
 -- USERS (khách hàng)
 IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE email = 'nguyenvana@gmail.com')
   INSERT INTO dbo.users (full_name, email, password_hash, role) VALUES
-  (N'Nguyễn Văn An', N'nguyenvana@gmail.com', N'$2b$10$YCK9dMQYWH7mGUNtkpyMlelUEe4uhKkKkgqU6RETekT..PirfWnpa', N'admin');
+  (N'Nguyễn Văn An', N'nguyenvana@gmail.com', N'$2b$10$YCK9dMQYWH7mGUNtkpyMlelUEe4uhKkKkgqU6RETekT..PirfWnpa', N'user');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE email = 'tranthib@gmail.com')
   INSERT INTO dbo.users (full_name, email, password_hash, role) VALUES
@@ -36,6 +36,7 @@ GO
 -- Cập nhật role cho user cũ nếu chưa có (migration safety)
 UPDATE dbo.users SET role = 'admin'   WHERE email = 'admin@shoeshop.com'   AND role != 'admin';
 UPDATE dbo.users SET role = 'manager' WHERE email = 'manager@shoeshop.com' AND role != 'manager';
+UPDATE dbo.users SET role = 'user'    WHERE email = 'nguyenvana@gmail.com' AND role != 'user';
 GO
 
 -- =====================
