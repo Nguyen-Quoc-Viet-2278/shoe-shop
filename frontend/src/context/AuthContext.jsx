@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { AuthContext } from "./auth-context";
+import { useState, useEffect, useCallback } from "react";
+import { AuthContext } from "./contexts";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -27,10 +27,10 @@ export function AuthProvider({ children }) {
     setToken(jwt);
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     setToken(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isLoggedIn: !!user }}>

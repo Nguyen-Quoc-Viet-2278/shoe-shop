@@ -25,7 +25,7 @@ export default function Footer() {
         { label: "Hướng dẫn mua hàng", to: "/" },
         { label: "Chính sách đổi trả", to: "/" },
         { label: "Chính sách giao hàng", to: "/" },
-        { label: "Liên hệ", to: "/" },
+        { label: "Liên hệ", to: "/lien-he" },
       ],
     },
     {
@@ -38,21 +38,18 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="py-16 px-6 border-t border-gray-100">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-14">
+    <footer className="bg-[#f5f1ed] text-[#1d1714]">
+      <div className="section-shell py-16">
+        <div className="mb-14 grid grid-cols-2 gap-10 md:grid-cols-4">
           {cols.map((col) => (
             <div key={col.title}>
-              <h4 className="text-[10px] font-bold tracking-[0.3em] uppercase mb-6">
+              <h4 className="mb-6 text-[10px] font-bold uppercase tracking-[0.28em] text-[#7a685e]">
                 {col.title}
               </h4>
               <ul className="space-y-3">
                 {col.items.map((item) => (
                   <li key={item.label}>
-                    <Link
-                      to={item.to}
-                      className="text-sm text-gray-400 hover:text-black transition"
-                    >
+                    <Link to={item.to} className="text-sm text-[#605750] hover:text-[#17120d] transition">
                       {item.label}
                     </Link>
                   </li>
@@ -62,12 +59,12 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center border-t border-gray-100 pt-8 gap-4">
-          <Link to="/" className="font-hero text-3xl tracking-widest hover:opacity-70 transition">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-[#e3d5c5] pt-8 md:flex-row">
+          <Link to="/" className="font-hero text-4xl leading-none tracking-[0.16em] text-[#17120d]">
             LIZSHOOS
           </Link>
-          <p className="text-gray-400 text-xs tracking-widest">
-            © 2025 LIZSHOOS. All rights reserved.
+          <p className="text-[10px] uppercase tracking-[0.26em] text-[#7d7168]">
+            © 2026 LIZSHOOS. All rights reserved.
           </p>
         </div>
       </div>

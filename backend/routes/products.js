@@ -5,6 +5,7 @@ const multer = require("multer");
 const router = express.Router();
 const { query } = require("../db");
 const auth = require("../middleware/auth");
+const defaultProducts = require("../data/defaultProducts");
 
 const uploadDirectory = path.join(__dirname, "..", "uploads", "products");
 fs.mkdirSync(uploadDirectory, { recursive: true });
@@ -60,9 +61,12 @@ router.post("/upload-image", auth, requireRole("admin", "manager"), (req, res) =
 router.get("/", async (req, res) => {
   try {
     const [rows] = await query("SELECT * FROM products ORDER BY id ASC");
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.json(defaultProducts);
+    }
     res.json(rows.map(parseProduct));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.json(defaultProducts);
   }
 });
 
@@ -70,10 +74,16 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const [rows] = await query("SELECT * FROM products WHERE id = ?", [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
+    if (!rows.length) {
+      const fallback = defaultProducts.find((product) => String(product.id) === String(req.params.id));
+      if (!fallback) return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
+      return res.json(fallback);
+    }
     res.json(parseProduct(rows[0]));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const fallback = defaultProducts.find((product) => String(product.id) === String(req.params.id));
+    if (!fallback) return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
+    return res.json(fallback);
   }
 });
 

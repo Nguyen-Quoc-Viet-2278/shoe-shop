@@ -1,12 +1,30 @@
 import { useState } from "react";
+import { API_URL } from "../lib/config";
 
 export default function Newsletter() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email) setSubmitted(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/newsletter`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Không thể đăng ký nhận tin");
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,12 +58,14 @@ export default function Newsletter() {
               />
               <button
                 type="submit"
+                disabled={loading}
                 className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center hover:opacity-75 transition shrink-0 text-lg"
               >
-                →
+                {loading ? "…" : "→"}
               </button>
             </form>
           )}
+          {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
         </div>
       </div>
     </section>

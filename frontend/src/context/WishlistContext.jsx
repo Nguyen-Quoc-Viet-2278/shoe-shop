@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { WishlistContext } from "./wishlist-context";
 import { API_URL } from "../lib/config";
+import { WishlistContext } from "./contexts";
 
 export function WishlistProvider({ children, token }) {
   const [ids, setIds] = useState([]);

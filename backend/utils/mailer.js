@@ -1,9 +1,32 @@
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS },
-});
+function isMailConfigured() {
+  const user = process.env.MAIL_USER || "";
+  const pass = process.env.MAIL_PASS || "";
+
+  return Boolean(
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user) &&
+    pass.trim() &&
+    !/your_email|xxxx/i.test(user + pass)
+  );
+}
+
+const transporter = isMailConfigured()
+  ? nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS },
+    })
+  : null;
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  })[char]);
+}
 
 async function sendResetEmail(toEmail, otp, name) {
   const mailOptions = {
@@ -24,11 +47,9 @@ async function sendResetEmail(toEmail, otp, name) {
     `,
   };
 
-  const userOk = process.env.MAIL_USER && !process.env.MAIL_USER.includes("gmail_cua_ban") && process.env.MAIL_USER.includes("@");
-  const passOk = process.env.MAIL_PASS && !process.env.MAIL_PASS.includes("xxxx");
-
-  if (!userOk || !passOk) {
-    console.log(`[DEV] Chưa cấu hình MAIL_USER/MAIL_PASS — OTP cho ${toEmail}: ${otp}`);
+  if (!isMailConfigured()) {
+    console.warn(`[MAIL] Chưa cấu hình Gmail app password. Thiết lập MAIL_USER và MAIL_PASS trong backend/.env để gửi OTP cho ${toEmail}.`);
+    console.log(`[DEV] OTP cho ${toEmail}: ${otp}`);
     return;
   }
 
@@ -41,17 +62,23 @@ async function sendResetEmail(toEmail, otp, name) {
 }
 
 async function sendOrderConfirmation(toEmail, order) {
-  const userOk = process.env.MAIL_USER && !process.env.MAIL_USER.includes("gmail_cua_ban") && process.env.MAIL_USER.includes("@");
-  const passOk = process.env.MAIL_PASS && !process.env.MAIL_PASS.includes("xxxx");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(toEmail || ""))) {
+    throw new Error("Địa chỉ email nhận xác nhận không hợp lệ");
+  }
+
+  if (!isMailConfigured()) {
+    console.warn(`[MAIL] Chưa cấu hình Gmail app password. Thiết lập MAIL_USER và MAIL_PASS trong backend/.env để gửi email đơn hàng #${order.orderId}.`);
+    return { sent: false, reason: "not_configured" };
+  }
 
   const itemsHtml = order.items.map((item) => `
     <tr>
-      <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px">${item.product_name ?? item.name}${item.size ? ` (Size ${item.size})` : ""}${item.color ? ` (${item.color})` : ""}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px">${escapeHtml(item.product_name ?? item.name)}${item.size ? ` (Size ${escapeHtml(item.size)})` : ""}${item.color ? ` (${escapeHtml(item.color)})` : ""}</td>
       <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:center;font-size:14px">x${item.quantity}</td>
       <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-size:14px">${Number(item.price * item.quantity).toLocaleString("vi-VN")}₫</td>
     </tr>`).join("");
 
-  const methodMap = { cod: "Thanh toán khi nhận hàng (COD)", bank: "Chuyển khoản ngân hàng", momo: "MoMo", vnpay: "VNPay" };
+  const methodMap = { cod: "Thanh toán khi nhận hàng (COD)", bank: "Chuyển khoản ngân hàng", vnpay: "VNPay" };
   const methodLabel = methodMap[order.paymentMethod] || order.paymentMethod;
 
   const html = `
@@ -65,8 +92,8 @@ async function sendOrderConfirmation(toEmail, order) {
       </div>
 
       <p style="font-size:14px;color:#555;margin-bottom:24px">
-        Xin chào <strong>${order.name}</strong>, đơn hàng của bạn đã được đặt thành công!<br/>
-        Chúng tôi sẽ liên hệ qua số <strong>${order.phone}</strong> để xác nhận giao hàng.
+        Xin chào <strong>${escapeHtml(order.name)}</strong>, đơn hàng của bạn đã được đặt thành công!<br/>
+        Chúng tôi sẽ liên hệ qua số <strong>${escapeHtml(order.phone)}</strong> để xác nhận giao hàng.
       </p>
 
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
@@ -85,8 +112,8 @@ async function sendOrderConfirmation(toEmail, order) {
       </div>
 
       <div style="background:#f7f7f7;border-radius:12px;padding:16px 20px;font-size:13px;color:#555;line-height:1.7;margin-bottom:24px">
-        <p style="margin:0"><strong>Địa chỉ giao hàng:</strong> ${order.address}</p>
-        <p style="margin:0"><strong>Phương thức thanh toán:</strong> ${methodLabel}</p>
+        <p style="margin:0"><strong>Địa chỉ giao hàng:</strong> ${escapeHtml(order.address)}</p>
+        <p style="margin:0"><strong>Phương thức thanh toán:</strong> ${escapeHtml(methodLabel)}</p>
       </div>
 
       <p style="color:#ccc;font-size:12px;margin-top:32px">
@@ -96,11 +123,6 @@ async function sendOrderConfirmation(toEmail, order) {
     </div>
   `;
 
-  if (!userOk || !passOk) {
-    console.log(`[DEV] Email xác nhận đơn #${order.orderId} → ${toEmail}`);
-    return;
-  }
-
   try {
     await transporter.sendMail({
       from: `"LIZSHOOS" <${process.env.MAIL_USER}>`,
@@ -108,8 +130,10 @@ async function sendOrderConfirmation(toEmail, order) {
       subject: `LIZSHOOS — Xác nhận đơn hàng #${order.orderId}`,
       html,
     });
+    return { sent: true };
   } catch (err) {
-    console.error("❌ Gửi email đơn hàng thất bại:", err.message);
+    console.error(`❌ Gửi email đơn hàng #${order.orderId} thất bại:`, err.message);
+    return { sent: false, reason: "delivery_failed" };
   }
 }
 

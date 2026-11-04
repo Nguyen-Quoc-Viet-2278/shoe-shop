@@ -11,8 +11,8 @@ import QuenMatKhau from "./pages/QuenMatKhau";
 import TrangCaNhan from "./pages/TrangCaNhan";
 import AdminDashboard from "./pages/AdminDashboard";
 import DonHangCuaToi from "./pages/DonHangCuaToi";
-import ThanhToanOnline from "./pages/ThanhToanOnline";
 import VNPayReturn from "./pages/VNPayReturn";
+import LienHe from "./pages/LienHe";
 
 function App() {
   return (
@@ -21,6 +21,7 @@ function App() {
       <Route path="/san-pham" element={<SanPham />} />
       <Route path="/san-pham/:id" element={<ChiTietSanPham />} />
       <Route path="/gioi-thieu" element={<GioiThieu />} />
+      <Route path="/lien-he" element={<LienHe />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/thanh-toan" element={<ThanhToan />} />
       <Route path="/dang-nhap" element={<DangNhap />} />
@@ -29,7 +30,6 @@ function App() {
       <Route path="/ca-nhan" element={<TrangCaNhan />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/don-hang" element={<DonHangCuaToi />} />
-      <Route path="/thanh-toan-online" element={<ThanhToanOnline />} />
       <Route path="/vnpay-return" element={<VNPayReturn />} />
     </Routes>
   );

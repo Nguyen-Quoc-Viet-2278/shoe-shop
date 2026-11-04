@@ -9,18 +9,24 @@ import { GOOGLE_CLIENT_ID } from "./lib/config";
 import App from "./App.jsx";
 import "./index.css";
 
-createRoot(document.getElementById("root")).render(
+const appShell = (
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <AuthProvider>
-          <WishlistWrapper>
-            <CartProvider>
-              <App />
-            </CartProvider>
-          </WishlistWrapper>
-        </AuthProvider>
-      </BrowserRouter>
-    </GoogleOAuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <WishlistWrapper>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </WishlistWrapper>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>
+);
+
+createRoot(document.getElementById("root")).render(
+  GOOGLE_CLIENT_ID ? (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{appShell}</GoogleOAuthProvider>
+  ) : (
+    appShell
+  )
 );

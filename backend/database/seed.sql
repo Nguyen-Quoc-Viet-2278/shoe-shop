@@ -82,7 +82,7 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.orders WHERE customer_phone='0901111111' AND total_amount=4500000)
 BEGIN
   INSERT INTO dbo.orders (customer_name, customer_phone, customer_address, payment_method, total_amount, status) VALUES
-  (N'Nguyễn Văn An', N'0901111111', N'123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM', N'momo', 4500000, N'shipping');
+  (N'Nguyễn Văn An', N'0901111111', N'123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM', N'bank', 4500000, N'shipping');
 
   DECLARE @order2 INT = SCOPE_IDENTITY();
   INSERT INTO dbo.order_items (order_id, product_id, product_name, price, quantity, size) VALUES
@@ -105,7 +105,7 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.orders WHERE customer_phone='0923333333' AND total_amount=6400000)
 BEGIN
   INSERT INTO dbo.orders (customer_name, customer_phone, customer_address, payment_method, total_amount, status) VALUES
-  (N'Lê Văn Công', N'0923333333', N'321 Đinh Tiên Hoàng, Phường 1, Quận Bình Thạnh, TP.HCM', N'momo', 6400000, N'pending');
+  (N'Lê Văn Công', N'0923333333', N'321 Đinh Tiên Hoàng, Phường 1, Quận Bình Thạnh, TP.HCM', N'bank', 6400000, N'pending');
 
   DECLARE @order4 INT = SCOPE_IDENTITY();
   INSERT INTO dbo.order_items (order_id, product_id, product_name, price, quantity, size) VALUES

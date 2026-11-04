@@ -6,7 +6,9 @@ Website bán giày trực tuyến với giao diện khách hàng và trang quả
 - Đăng ký / đăng nhập (kèm đăng nhập bằng Google)
 - Xem danh sách sản phẩm, chi tiết sản phẩm
 - Giỏ hàng, đặt hàng, thanh toán online (VNPAY)
+- Đồng bộ giỏ hàng theo tài khoản, quản lý địa chỉ giao hàng đã lưu
 - Theo dõi đơn hàng của tôi
+- Đăng ký nhận tin khuyến mãi
 - Thông báo
 - Trang quản trị: thống kê, quản lý sản phẩm/đơn hàng
 
@@ -44,7 +46,7 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-- `backend/.env`: thông tin database (SQL Server), JWT_SECRET, Google Client ID, cấu hình VNPAY
+- `backend/.env`: thông tin database (SQL Server), JWT_SECRET, Google Client ID, cấu hình VNPAY và email gửi biên nhận
 - `frontend/.env`: URL backend API, Google Client ID
 
 ### 5. Deploy Vercel + Railway
@@ -74,6 +76,9 @@ npm run db:migrate
 npm run db:seed
 ```
 
+Chạy migration trên cơ sở dữ liệu trước khi triển khai các API mới. Schema tạo các view thống kê cho trang quản trị và bảng lưu email nhận tin. Các file `.env` thực tế được Git ignore; chỉ commit file `.env.example`, không commit thông tin xác thực.
+
+Để gửi email xác nhận đơn hàng, cấu hình `MAIL_USER` và `MAIL_PASS` bằng Gmail cùng App Password 16 ký tự (bật xác minh 2 bước và tạo App Password trong tài khoản Google). Khi chưa cấu hình hoặc Gmail từ chối gửi, đơn hàng vẫn được tạo; trang thanh toán sẽ báo rằng email chưa gửi được.
 
 
 - Frontend: http://localhost:5173

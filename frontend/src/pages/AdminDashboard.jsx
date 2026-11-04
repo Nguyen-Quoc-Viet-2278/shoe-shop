@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { API_URL } from "../lib/config";
+import { notifyProductsChanged } from "../hooks/useProducts";
 
 const API = API_URL;
 const fmt = (n) => Number(n).toLocaleString("vi-VN") + "đ";
@@ -119,6 +120,7 @@ export default function AdminDashboard() {
 
   // misc
   const [updatingOrder, setUpdatingOrder] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [productSearch, setProductSearch] = useState("");
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -243,6 +245,7 @@ export default function AdminDashboard() {
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
       setShowProductForm(false);
+      notifyProductsChanged();
       fetchProducts();
       fetchDashboard();
     } catch (err) {
@@ -276,9 +279,17 @@ export default function AdminDashboard() {
 
   async function handleDeleteProduct(id, name) {
     if (!confirm(`Xoá sản phẩm "${name}"?`)) return;
-    await fetch(`${API}/products/${id}`, { method: "DELETE", headers });
-    fetchProducts();
-    fetchDashboard();
+    try {
+      const res = await fetch(`${API}/products/${id}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Xóa sản phẩm thất bại");
+      notifyProductsChanged();
+      window.dispatchEvent(new CustomEvent("shop-products-refresh"));
+      fetchProducts();
+      fetchDashboard();
+    } catch (err) {
+      alert(err.message || "Xóa sản phẩm thất bại");
+    }
   }
 
   /* ── Coupons ── */
@@ -574,14 +585,15 @@ export default function AdminDashboard() {
               <table className="w-full text-sm">
                 <thead className="border-b border-gray-100">
                   <tr>
-                    {["MÃ ĐƠN", "KHÁCH HÀNG", "TỔNG TIỀN", "THANH TOÁN", "TRẠNG THÁI", "CẬP NHẬT"].map(h => (
+                    {["MÃ ĐƠN", "KHÁCH HÀNG", "TỔNG TIỀN", "THANH TOÁN", "TRẠNG THÁI", "CẬP NHẬT", "ĐỊA CHỈ"].map(h => (
                       <th key={h} className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 tracking-widest">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map(o => (
-                    <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                    <Fragment key={o.id}>
+                    <tr className="border-b border-gray-50 hover:bg-gray-50 transition">
                       <td className="px-5 py-4 font-bold text-gray-400">#{o.id}</td>
                       <td className="px-5 py-4">
                         <p className="font-semibold">{o.customer_name}</p>
@@ -606,7 +618,42 @@ export default function AdminDashboard() {
                           ))}
                         </select>
                       </td>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedOrderId(expandedOrderId === o.id ? null : o.id)}
+                          className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold hover:border-blue-400"
+                        >
+                          {expandedOrderId === o.id ? "Ẩn" : "Chi tiết"}
+                        </button>
+                      </td>
                     </tr>
+                    {expandedOrderId === o.id && (
+                      <tr className="border-b border-gray-100 bg-gray-50">
+                        <td colSpan={7} className="px-6 py-5">
+                          <div className="grid gap-5 md:grid-cols-2">
+                            <div>
+                              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">Địa chỉ nhận hàng</p>
+                              <p className="font-semibold">{o.customer_name} · {o.customer_phone}</p>
+                              <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">{o.customer_address}</p>
+                            </div>
+                            <div>
+                              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">Sản phẩm</p>
+                              <div className="space-y-2">
+                                {(o.items || []).map((item) => (
+                                  <div key={item.id} className="flex justify-between gap-4 text-sm">
+                                    <span>{item.product_name} × {item.quantity}{item.size ? ` · Size ${item.size}` : ""}{item.color ? ` · ${item.color}` : ""}</span>
+                                    <span className="shrink-0 font-semibold">{fmt(Number(item.price) * item.quantity)}</span>
+                                  </div>
+                                ))}
+                                {(o.items || []).length === 0 && <p className="text-sm text-gray-400">Không có thông tin sản phẩm.</p>}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

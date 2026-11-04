@@ -10,64 +10,27 @@ export default function VNPayReturn() {
 
   if (status === "success") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center"
-        style={{ background: "#fff5f5" }}>
-        <div className="w-24 h-24 rounded-full flex items-center justify-center text-white text-5xl font-bold"
-          style={{ background: "#e31837" }}>
-          ✓
-        </div>
-        <h1 className="text-4xl font-black">Thanh toán VNPay thành công!</h1>
-        <p className="text-gray-500 text-sm">
-          Mã đơn hàng <strong>#{orderId}</strong> đã được xác nhận.
-        </p>
-        {amount > 0 && (
-          <p className="font-black text-2xl" style={{ color: "#e31837" }}>
-            -{amount.toLocaleString("vi-VN")}₫
-          </p>
-        )}
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={() => navigate("/don-hang")}
-            className="px-8 py-3.5 rounded-2xl font-bold text-sm text-white"
-            style={{ background: "#e31837" }}
-          >
-            Xem đơn hàng
-          </button>
-          <Link
-            to="/"
-            className="px-8 py-3.5 rounded-2xl font-bold text-sm border-2 border-gray-200 hover:border-gray-400 transition"
-          >
-            Về trang chủ
-          </Link>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center" style={{ background: "#fff5f5" }}>
+        <div className="flex h-24 w-24 items-center justify-center rounded-full text-5xl font-bold text-white" style={{ background: "#e31837" }}>✓</div>
+        <h1 className="font-hero text-5xl text-[#1b1714]">Thanh toán VNPay thành công!</h1>
+        <p className="text-sm text-[#6f665f]">Mã đơn hàng <strong>#{orderId}</strong> đã được xác nhận.</p>
+        {amount > 0 && <p className="text-2xl font-black" style={{ color: "#e31837" }}>-{amount.toLocaleString("vi-VN")}₫</p>}
+        <div className="mt-4 flex gap-3">
+          <button onClick={() => navigate("/don-hang")} className="rounded-full bg-[#e31837] px-8 py-3.5 text-sm font-bold text-white transition hover:opacity-80">Xem đơn hàng</button>
+          <Link to="/" className="rounded-full border-2 border-[#e7d8c6] bg-white px-8 py-3.5 text-sm font-bold text-[#1b1714] transition hover:border-[#1b1714]">Về trang chủ</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
-      <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center text-red-500 text-4xl">
-        ✗
-      </div>
-      <h1 className="text-3xl font-black">Thanh toán thất bại</h1>
-      <p className="text-gray-400 text-sm">
-        {status === "invalid"
-          ? "Dữ liệu trả về không hợp lệ."
-          : `Giao dịch cho đơn hàng #${orderId} không thể hoàn tất.`}
-      </p>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 text-4xl text-red-500">✗</div>
+      <h1 className="font-hero text-4xl text-[#1b1714]">Thanh toán thất bại</h1>
+      <p className="text-sm text-[#7a706a]">{status === "invalid" ? "Dữ liệu trả về không hợp lệ." : `Giao dịch cho đơn hàng #${orderId} không thể hoàn tất.`}</p>
       <div className="flex gap-3">
-        <Link
-          to="/thanh-toan"
-          className="px-8 py-3.5 rounded-2xl font-bold text-sm text-white bg-black hover:opacity-80 transition"
-        >
-          Thử lại
-        </Link>
-        <Link
-          to="/"
-          className="px-8 py-3.5 rounded-2xl font-bold text-sm border-2 border-gray-200 hover:border-gray-400 transition"
-        >
-          Về trang chủ
-        </Link>
+        <Link to="/thanh-toan" className="rounded-full bg-[#1b1714] px-8 py-3.5 text-sm font-bold text-white transition hover:opacity-80">Thử lại</Link>
+        <Link to="/" className="rounded-full border-2 border-[#e7d8c6] bg-white px-8 py-3.5 text-sm font-bold text-[#1b1714] transition hover:border-[#1b1714]">Về trang chủ</Link>
       </div>
     </div>
   );

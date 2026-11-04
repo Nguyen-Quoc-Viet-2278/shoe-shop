@@ -19,23 +19,32 @@ function signToken(user) {
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
-  const { full_name, email, password } = req.body;
+  const { full_name, email, phone, password } = req.body;
   if (!full_name || !email || !password)
     return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin" });
   if (password.length < 6)
     return res.status(400).json({ error: "Mật khẩu phải có ít nhất 6 ký tự" });
+  const normalizedName = String(full_name).trim();
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const normalizedPhone = String(phone || "").trim();
+  if (!normalizedName || normalizedName.length > 255)
+    return res.status(400).json({ error: "Họ tên không hợp lệ" });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || normalizedEmail.length > 255)
+    return res.status(400).json({ error: "Email không hợp lệ" });
+  if (normalizedPhone && !/^[0-9+\-\s().]{8,20}$/.test(normalizedPhone))
+    return res.status(400).json({ error: "Số điện thoại không hợp lệ" });
 
   try {
-    const [existing] = await query("SELECT id FROM users WHERE email = ?", [email]);
+    const [existing] = await query("SELECT id FROM users WHERE email = ?", [normalizedEmail]);
     if (existing.length > 0)
       return res.status(409).json({ error: "Email đã được sử dụng" });
 
     const hashed = await bcrypt.hash(password, 10);
     const [rows] = await query(
-      `INSERT INTO users (full_name, email, password_hash)
-       OUTPUT INSERTED.id, INSERTED.full_name, INSERTED.email, INSERTED.role
-       VALUES (?, ?, ?)`,
-      [full_name, email, hashed]
+      `INSERT INTO users (full_name, email, phone, password_hash)
+       OUTPUT INSERTED.id, INSERTED.full_name, INSERTED.email, INSERTED.phone, INSERTED.role
+       VALUES (?, ?, ?, ?)`,
+      [normalizedName, normalizedEmail, normalizedPhone || null, hashed]
     );
     const user = rows[0];
     res.status(201).json({ token: signToken(user), user });

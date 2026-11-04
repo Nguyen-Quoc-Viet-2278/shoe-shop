@@ -175,7 +175,8 @@ export default function ChiTietSanPham() {
   const { user, token, isLoggedIn } = useAuth();
   const { ids: wishIds, toggle: wishToggle } = useWishlist();
 
-  const product = products.find((p) => p.id === Number(id));
+  const [remoteProduct, setRemoteProduct] = useState(null);
+  const product = remoteProduct ?? products.find((p) => p.id === Number(id));
 
   const [selectedSize, setSelectedSize] = useState(null);
   const [sizeError, setSizeError] = useState(false);
@@ -217,6 +218,23 @@ export default function ChiTietSanPham() {
       if (res.ok) setMyReview(await res.json());
     } catch { /* ignore */ }
   };
+
+  useEffect(() => {
+    if (!id) return;
+    if (!products.length) return;
+    const matched = products.find((p) => p.id === Number(id));
+    if (!matched) {
+      fetch(`${API_URL}/products/${id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("not-found");
+          return res.json();
+        })
+        .then((data) => setRemoteProduct(data))
+        .catch(() => setRemoteProduct(null));
+      return;
+    }
+    setRemoteProduct(null);
+  }, [id, products]);
 
   useEffect(() => {
     if (product) {

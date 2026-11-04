@@ -64,7 +64,7 @@ BEGIN
     customer_name NVARCHAR(255) NOT NULL,
     customer_phone NVARCHAR(20) NOT NULL,
     customer_address NVARCHAR(MAX) NOT NULL,
-    payment_method NVARCHAR(20) NOT NULL, -- 'bank' | 'momo'
+    payment_method NVARCHAR(20) NOT NULL, -- 'cod' | 'bank' | 'vnpay'
     total_amount DECIMAL(12,0) NOT NULL,
     status NVARCHAR(20) NOT NULL CONSTRAINT DF_orders_status DEFAULT ('pending'),
     created_at DATETIME2 NOT NULL CONSTRAINT DF_orders_created_at DEFAULT (SYSUTCDATETIME())
@@ -99,12 +99,13 @@ BEGIN
     product_id INT NOT NULL,
     size INT NOT NULL,
     quantity INT NOT NULL CONSTRAINT DF_cart_items_quantity DEFAULT (1),
+    color NVARCHAR(50) NOT NULL CONSTRAINT DF_cart_items_color DEFAULT (''),
     created_at DATETIME2 NOT NULL CONSTRAINT DF_cart_items_created_at DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT FK_cart_items_users FOREIGN KEY (user_id)
       REFERENCES dbo.users(id) ON DELETE CASCADE,
     CONSTRAINT FK_cart_items_products FOREIGN KEY (product_id)
       REFERENCES dbo.products(id) ON DELETE CASCADE,
-    CONSTRAINT UQ_cart_user_product_size UNIQUE (user_id, product_id, size)
+    CONSTRAINT UQ_cart_user_product_size_color UNIQUE (user_id, product_id, size, color)
   );
 END
 GO
@@ -184,7 +185,24 @@ GO
 
 -- Add color to cart_items / order_items
 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='cart_items' AND COLUMN_NAME='color')
-  ALTER TABLE dbo.cart_items ADD color NVARCHAR(50) NULL;
+  ALTER TABLE dbo.cart_items ADD color NVARCHAR(50) NOT NULL CONSTRAINT DF_cart_items_color DEFAULT ('') WITH VALUES;
+GO
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name='UQ_cart_user_product_size')
+  ALTER TABLE dbo.cart_items DROP CONSTRAINT UQ_cart_user_product_size;
+GO
+UPDATE dbo.cart_items SET color = '' WHERE color IS NULL;
+GO
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.cart_items') AND name = 'color' AND is_nullable = 1
+)
+  ALTER TABLE dbo.cart_items ALTER COLUMN color NVARCHAR(50) NOT NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.default_constraints WHERE name='DF_cart_items_color')
+  ALTER TABLE dbo.cart_items ADD CONSTRAINT DF_cart_items_color DEFAULT ('') FOR color;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name='UQ_cart_user_product_size_color')
+  ALTER TABLE dbo.cart_items ADD CONSTRAINT UQ_cart_user_product_size_color UNIQUE (user_id, product_id, size, color);
 GO
 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='order_items' AND COLUMN_NAME='color')
   ALTER TABLE dbo.order_items ADD color NVARCHAR(50) NULL;
@@ -352,3 +370,60 @@ IF NOT EXISTS (SELECT 1 FROM dbo.coupons WHERE code = 'SALE50K')
   VALUES ('SALE50K', 'fixed', 50000, 1000000);
 GO
 
+-- NEWSLETTER SUBSCRIBERS
+IF OBJECT_ID('dbo.newsletter_subscribers', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.newsletter_subscribers (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    email NVARCHAR(255) NOT NULL,
+    created_at DATETIME2 NOT NULL CONSTRAINT DF_newsletter_subscribers_created_at DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT UQ_newsletter_subscribers_email UNIQUE (email)
+  );
+END
+GO
+
+-- ADMIN DASHBOARD VIEWS
+CREATE OR ALTER VIEW dbo.vw_dashboard_summary AS
+SELECT
+  (SELECT COUNT_BIG(*) FROM dbo.orders) AS total_orders,
+  (SELECT COALESCE(SUM(total_amount), 0) FROM dbo.orders WHERE status = 'done') AS total_revenue,
+  (SELECT COUNT_BIG(*) FROM dbo.products) AS total_products,
+  (SELECT COUNT_BIG(*) FROM dbo.users) AS total_users,
+  (SELECT COUNT_BIG(*) FROM dbo.orders WHERE status = 'pending') AS orders_pending,
+  (SELECT COUNT_BIG(*) FROM dbo.orders WHERE status = 'awaiting_payment') AS orders_awaiting_payment,
+  (SELECT COUNT_BIG(*) FROM dbo.orders WHERE status = 'confirmed') AS orders_confirmed,
+  (SELECT COUNT_BIG(*) FROM dbo.orders WHERE status = 'shipping') AS orders_shipping,
+  (SELECT COUNT_BIG(*) FROM dbo.orders WHERE status = 'done') AS orders_done,
+  (SELECT COUNT_BIG(*) FROM dbo.orders WHERE status = 'cancelled') AS orders_cancelled;
+GO
+
+CREATE OR ALTER VIEW dbo.vw_top_products AS
+SELECT TOP (10)
+  p.id,
+  p.name,
+  p.brand,
+  SUM(oi.quantity) AS total_sold,
+  SUM(oi.quantity * COALESCE(oi.price, 0)) AS total_revenue
+FROM dbo.order_items oi
+JOIN dbo.orders o ON o.id = oi.order_id
+JOIN dbo.products p ON p.id = oi.product_id
+WHERE o.status IN ('confirmed', 'shipping', 'done')
+GROUP BY p.id, p.name, p.brand
+ORDER BY SUM(oi.quantity) DESC, SUM(oi.quantity * COALESCE(oi.price, 0)) DESC;
+GO
+
+CREATE OR ALTER VIEW dbo.vw_revenue_by_month AS
+SELECT
+  YEAR(created_at) AS year,
+  MONTH(created_at) AS month,
+  CONCAT(
+    RIGHT(CONCAT('0', MONTH(created_at)), 2),
+    '/',
+    YEAR(created_at)
+  ) AS month_label,
+  SUM(total_amount) AS revenue,
+  COUNT_BIG(*) AS total_orders
+FROM dbo.orders
+WHERE status = 'done'
+GROUP BY YEAR(created_at), MONTH(created_at);
+GO
